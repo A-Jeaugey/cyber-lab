@@ -166,7 +166,7 @@ function renderHome() {
     <section class="hero reveal">
       <span class="hero-badge"><span class="pulse"></span>Cybersécurité offensive · TryHackMe & HTB</span>
       <h1>Un lab cyber <span class="grad">vivant</span>.<br>Notes de pentest & write-ups de box.</h1>
-      <p class="lead">Cheatsheets par sujet, méthodes offensives et write-ups de box (TryHackMe, HTB…) — rangés, indexés et cherchables à la volée. Le carnet cybersécurité d'Arthur Jeaugey, enrichi au fil des rooms.</p>
+      <p class="lead">Cheatsheets par sujet, méthodes offensives et write-ups de box (TryHackMe, HTB…) — rangés, indexés et cherchables à la volée. Un carnet de cybersécurité offensive, enrichi au fil des rooms.</p>
       <div class="hero-actions">
         <button class="btn primary" id="hero-search">⌕ Rechercher une notion <span class="kbd">Ctrl K</span></button>
         <button class="btn" id="hero-browse">▤ Parcourir les sujets</button>

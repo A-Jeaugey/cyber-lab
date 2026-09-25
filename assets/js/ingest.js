@@ -73,7 +73,7 @@ export function initIngest({ index }) {
 
           <!-- MODE CRÉER -->
           <div data-mode-panel="create" hidden>
-            <div class="callout">Crée une nouvelle note de savoir, ou une <strong>box poppée en training</strong> (catégorie <em>Rooms &amp; Boxes</em>) avec son writeup.</div>
+            <div class="callout">Crée une nouvelle note de savoir, ou une <strong>box réalisée en training</strong> (catégorie <em>Rooms &amp; Boxes</em>) avec son write-up.</div>
             <div class="grid-2">
               <div class="field"><label>Titre</label><input id="f-title" placeholder="Blue"></div>
               <div class="field"><label>Catégorie</label><select id="f-category">${cats}</select></div>
@@ -93,7 +93,7 @@ export function initIngest({ index }) {
         </div>
 
         <div data-panel="agent" hidden>
-          <div class="callout">Tes agents appellent directement l'API GitHub avec un token. Pas de site, pas de login, pas de <code>git clone</code>. Deux events selon le geste.</div>
+          <div class="callout">Les agents IA appellent directement l'API GitHub avec un token. Pas de site, pas de login, pas de <code>git clone</code>. Deux events selon le geste.</div>
           <div class="field"><label>1 · Compléter une note existante (event « contribute »)</label>
             <pre class="dispatch-pre" id="agent-contribute"></pre>
             <button class="side-btn" id="copy-contribute" style="margin-top:10px;max-width:220px">Copier</button>

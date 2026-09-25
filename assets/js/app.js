@@ -164,13 +164,13 @@ function renderHome() {
 
   $('#view').innerHTML = `
     <section class="hero reveal">
-      <span class="hero-badge"><span class="pulse"></span>Cyber Lab · TryHackMe & pentest</span>
-      <h1>Le lab de <span class="grad">tes réflexes</span>.<br>Toute ta cyber, rangée & cherchable.</h1>
-      <p class="lead">Chaque room, chaque commande, chaque pattern — séparé par sujet, indexé, et accessible en deux frappes. Tes agents IA peuvent ajouter une room via un simple token, sans login.</p>
+      <span class="hero-badge"><span class="pulse"></span>Cybersécurité offensive · TryHackMe & HTB</span>
+      <h1>Un lab cyber <span class="grad">vivant</span>.<br>Notes de pentest & write-ups de box.</h1>
+      <p class="lead">Cheatsheets par sujet, méthodes offensives et write-ups de box (TryHackMe, HTB…) — rangés, indexés et cherchables à la volée. Le carnet cybersécurité d'Arthur Jeaugey, enrichi au fil des rooms.</p>
       <div class="hero-actions">
         <button class="btn primary" id="hero-search">⌕ Rechercher une notion <span class="kbd">Ctrl K</span></button>
-        <button class="btn" id="hero-add">＋ Ajouter une room</button>
-        <a class="btn" href="#/note/${recent[0]?.id || entries[0].id}">↳ Dernière note</a>
+        <button class="btn" id="hero-browse">▤ Parcourir les sujets</button>
+        <a class="btn" href="#/note/${recent[0]?.id || entries[0].id}">↳ Dernier ajout</a>
       </div>
     </section>
 
@@ -181,7 +181,7 @@ function renderHome() {
       ${statCard(stats.rooms, 'Rooms')}
     </div>
 
-    <div class="section-head reveal"><h2>Explorer par sujet</h2><span class="hint">${categories.length} catégories</span></div>
+    <div class="section-head reveal" id="explore"><h2>Explorer par sujet</h2><span class="hint">${categories.length} catégories</span></div>
     <div class="cat-grid">
       ${categories.map((c) => {
         const n = entries.filter((e) => e.category === c.id).length;
@@ -197,10 +197,18 @@ function renderHome() {
     <div class="section-head reveal"><h2>Tags</h2><span class="hint">accès rapide</span></div>
     <div class="tag-cloud reveal">
       ${topTags.map(([t, n]) => `<a class="tag-pill" href="#/tag/${encodeURIComponent(t)}">${escapeHtml(t)}<b>${n}</b></a>`).join('')}
-    </div>`;
+    </div>
+
+    <footer class="home-foot reveal">
+      <div>
+        <div class="hf-title">Cyber Lab</div>
+        <div class="hf-sub">Carnet de cybersécurité offensive d'Arthur Jeaugey — mis à jour au fil des rooms.</div>
+      </div>
+      <a class="hf-link" href="https://github.com/a-jeaugey/cyber-lab" target="_blank" rel="noopener noreferrer">Code source · GitHub ↗</a>
+    </footer>`;
 
   $('#hero-search').addEventListener('click', openPalette);
-  $('#hero-add').addEventListener('click', () => window.dispatchEvent(new CustomEvent('open-ingest')));
+  $('#hero-browse')?.addEventListener('click', () => document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   animateStats();
   observeReveal();
 }

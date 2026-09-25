@@ -4,7 +4,7 @@
    - Google Fonts : cache-first runtime.
    Bumpe CACHE pour invalider après un gros changement. */
 
-const CACHE = 'cyber-lab-v2';
+const CACHE = 'cyber-lab-v3';
 const CORE = [
   './',
   'index.html',
@@ -64,10 +64,20 @@ self.addEventListener('fetch', (e) => {
       e.respondWith(networkFirst(req));
       return;
     }
-    // Reste : cache-first
-    e.respondWith(cacheFirst(req));
+    // Assets (js/css/html/icônes) : stale-while-revalidate
+    // -> sert le cache tout de suite, met à jour en arrière-plan pour le prochain chargement.
+    e.respondWith(staleWhileRevalidate(req));
   }
 });
+
+async function staleWhileRevalidate(req) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(req);
+  const network = fetch(req)
+    .then((res) => { if (res && res.ok) cache.put(req, res.clone()); return res; })
+    .catch(() => null);
+  return cached || (await network) || Response.error();
+}
 
 async function cacheFirst(req) {
   const cached = await caches.match(req);

@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Cyber Lab — client_payload d'une room (event add-room)",
+  "type": "object",
+  "required": ["title", "body"],
+  "additionalProperties": false,
+  "properties": {
+    "title":      { "type": "string", "description": "Nom de la room / note.", "minLength": 1 },
+    "category":   { "type": "string", "default": "rooms",
+                    "enum": ["linux", "windows", "networking", "recon", "exploitation", "web", "postexploit", "cryptohash", "scripting", "rooms"] },
+    "platform":   { "type": "string", "description": "THM, HTB, ou autre.", "examples": ["THM", "HTB"] },
+    "difficulty": { "type": "string", "examples": ["Easy", "Medium", "Hard", "Fondamentaux"] },
+    "status":     { "type": "string", "examples": ["Terminée", "En cours"] },
+    "icon":       { "type": "string", "description": "Emoji d'illustration (optionnel)." },
+    "tags":       { "type": "array", "items": { "type": "string" }, "description": "Mots-clés pour la recherche." },
+    "summary":    { "type": "string", "description": "Résumé en une phrase." },
+    "body":       { "type": "string", "description": "Contenu Markdown (titres ##, listes, tables, blocs de code)." },
+    "slug":       { "type": "string", "description": "Optionnel — sinon dérivé du titre." }
+  }
+}

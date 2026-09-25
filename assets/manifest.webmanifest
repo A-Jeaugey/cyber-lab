@@ -1,0 +1,15 @@
+{
+  "name": "Cyber Lab — notes pentest d'Arthur",
+  "short_name": "Cyber Lab",
+  "description": "Notes TryHackMe & pentest rangées par sujet, cherchables en deux frappes, enrichies par agents IA via token.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#06080d",
+  "theme_color": "#06080d",
+  "categories": ["education", "productivity", "security"],
+  "icons": [
+    { "src": "assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

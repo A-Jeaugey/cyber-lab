@@ -1,0 +1,13 @@
+{
+  "name": "cyber-lab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Le lab cyber d'Arthur — notes TryHackMe & pentest, rangées et cherchables.",
+  "scripts": {
+    "build": "node scripts/build-index.mjs",
+    "serve": "python3 -m http.server 8123",
+    "dev": "node scripts/build-index.mjs && python3 -m http.server 8123",
+    "add-room": "node scripts/add-room.mjs"
+  }
+}

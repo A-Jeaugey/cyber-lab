@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Cyber Lab — notes pentest d'Arthur</title>
+  <meta name="description" content="Le lab cyber d'Arthur : notes TryHackMe & pentest rangées par sujet, cherchables en deux frappes, enrichies par ses agents IA via un simple token.">
+  <meta name="theme-color" content="#06080d" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
+  <meta name="color-scheme" content="dark light">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Cyber Lab — notes pentest">
+  <meta property="og:description" content="Notes TryHackMe & pentest, rangées et cherchables. Ingestion par token pour agents IA.">
+  <meta property="og:type" content="website">
+
+  <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icons/icon.svg">
+  <link rel="manifest" href="assets/manifest.webmanifest">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#/">
+        <div class="brand-mark">&gt;_</div>
+        <div>
+          <div class="brand-name">Cyber<span>Lab</span></div>
+          <div class="brand-sub">Arthur · pentest</div>
+        </div>
+      </a>
+      <button class="search-trigger" id="search-trigger">
+        <span>⌕</span><span>Rechercher…</span><span class="kbd">Ctrl K</span>
+      </button>
+      <nav class="nav" id="nav"></nav>
+      <div class="sidebar-foot">
+        <button class="side-btn primary" id="add-btn-side">＋ Ajouter une room</button>
+        <a class="side-btn" href="https://github.com/a-jeaugey/cyber-lab" target="_blank" rel="noopener noreferrer">★ Voir sur GitHub</a>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+      <header class="topbar">
+        <button class="hamburger" id="hamburger" aria-label="Menu">☰</button>
+        <nav class="crumbs" id="crumbs"></nav>
+        <div class="topbar-spacer"></div>
+        <button class="icon-btn" id="search-btn" title="Rechercher (Ctrl+K)" aria-label="Rechercher">⌕</button>
+        <button class="icon-btn" id="theme-btn" title="Changer de thème" aria-label="Thème">◐</button>
+        <button class="icon-btn" id="add-btn-top" title="Ajouter une room" aria-label="Ajouter">＋</button>
+        <div class="progress" id="progress"></div>
+      </header>
+      <main class="content" id="view"></main>
+    </div>
+  </div>
+
+  <div class="scrim" id="scrim"></div>
+
+  <!-- COMMAND PALETTE -->
+  <div class="palette-backdrop" id="palette">
+    <div class="palette" role="dialog" aria-modal="true" aria-label="Recherche">
+      <div class="palette-input-row">
+        <span class="pi-icon">⌕</span>
+        <input id="palette-input" type="text" placeholder="Rechercher une notion, une commande, une room…" autocomplete="off" spellcheck="false" aria-label="Recherche">
+        <span class="kbd">Esc</span>
+      </div>
+      <div class="palette-results" id="palette-results"></div>
+      <div class="palette-foot">
+        <span><span class="kbd">↑</span><span class="kbd">↓</span> naviguer</span>
+        <span><span class="kbd">↵</span> ouvrir</span>
+        <span><span class="kbd">esc</span> fermer</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL (rempli par ingest.js) -->
+  <div class="modal-backdrop" id="modal"></div>
+
+  <script type="module" src="assets/js/app.js"></script>
+  <script>
+    // Service worker (offline). Silencieux si non supporté / non servi en HTTPS.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

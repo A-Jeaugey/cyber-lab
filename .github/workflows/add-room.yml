@@ -1,13 +1,16 @@
-name: Add room (repository_dispatch)
+name: Ingest note (repository_dispatch)
 
-# Déclenché par un POST sur /repos/OWNER/REPO/dispatches avec un token.
-# Aucun login : le token seul suffit (Contents: read & write).
-#   event_type = "add-room"
-#   client_payload = { title, category, platform, difficulty, status, icon, tags[], summary, body }
+# Déclenché par un POST sur /repos/OWNER/REPO/dispatches avec un token seul
+# (Contents: read & write). Deux gestes, un seul mécanisme :
+#   event_type "add-room"   -> créer une nouvelle note / room
+#   event_type "contribute" -> compléter une note existante (append / after / replace)
+# client_payload :
+#   { target?, op?, after?, title?, category?, platform?, difficulty?,
+#     status?, icon?, tags[], summary?, body }
 
 on:
   repository_dispatch:
-    types: [add-room]
+    types: [add-room, contribute, update-note]
 
 permissions:
   contents: write
@@ -31,10 +34,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: Écrire la note depuis le payload
+      - name: Créer ou mettre à jour la note
+        id: note
         env:
           PAYLOAD: ${{ toJSON(github.event.client_payload) }}
-        run: node scripts/write-room.mjs
+        run: node scripts/write-note.mjs
 
       - name: Régénérer l'index
         run: node scripts/build-index.mjs
@@ -42,14 +46,16 @@ jobs:
       - name: Commit & push
         env:
           TITLE: ${{ github.event.client_payload.title }}
+          TARGET: ${{ github.event.client_payload.target }}
+          ACTION: ${{ steps.note.outputs.action }}
         run: |
           git config user.name "cyber-lab-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add content
+          git add -A content
           if git diff --cached --quiet; then
             echo "Rien à committer."
           else
-            git commit -m "room: ${TITLE:-nouvelle note} (via agent)"
+            git commit -m "notes: ${ACTION:-update} ${TARGET:-${TITLE:-note}} (via agent)"
             git push
           fi
 

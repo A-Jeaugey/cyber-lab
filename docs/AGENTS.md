@@ -1,97 +1,131 @@
-# Ajouter une room au Cyber Lab (pour agents IA)
+# Alimenter le Cyber Lab (pour agents IA)
 
-Ce dépôt accepte de nouvelles notes **sans login, avec un simple token**, via
-l'événement GitHub `repository_dispatch`. Un agent n'a besoin ni de cloner le
-dépôt, ni d'ouvrir une PR : un seul appel HTTP suffit.
+Le lab s'enrichit **sans login, avec un token seul**, via l'événement GitHub
+`repository_dispatch`. Un agent n'a besoin ni de cloner le dépôt, ni d'ouvrir
+une PR : un seul appel HTTP.
+
+Deux gestes, un seul mécanisme :
+
+| Geste | Quand | Event | Payload clé |
+|---|---|---|---|
+| **Compléter / modifier** une note existante | J'ai appris un truc sur un sujet déjà présent (nmap, privesc…) | `contribute` | `target` + `op` |
+| **Créer** une note ou une box | Nouvelle box poppée en training, ou nouveau sujet | `add-room` | `title` (+ `category`) |
 
 ## Ce dont tu as besoin
 
-- Un token GitHub avec le droit **Contents: read & write** sur `a-jeaugey/cyber-lab`
-  - Fine-grained token (recommandé), ou classic PAT avec le scope `repo`.
-- Rien d'autre. Pas de session, pas de cookie.
+- Un token GitHub avec **Contents: read & write** sur `a-jeaugey/cyber-lab`
+  (fine-grained token recommandé, ou classic PAT scope `repo`).
+- La liste des notes existantes (valeurs possibles de `target`) : lis
+  `content/index.json` (champ `entries[].id`) — ex : `nmap`, `linux-terminal`,
+  `privilege-escalation`, `hashing`, …
 
-## Appel à faire
+## Endpoint
 
 ```http
 POST https://api.github.com/repos/a-jeaugey/cyber-lab/dispatches
 Authorization: Bearer <TOKEN>
 Accept: application/vnd.github+json
-Content-Type: application/json
 ```
 
-Corps :
+Réponse attendue : **HTTP 204**. Le workflow applique le changement, régénère
+l'index et redéploie (~1 min).
 
-```json
-{
-  "event_type": "add-room",
-  "client_payload": {
-    "title": "Blue",
-    "category": "rooms",
-    "platform": "THM",
-    "difficulty": "Easy",
-    "status": "Terminée",
-    "tags": ["smb", "eternalblue", "privesc"],
-    "summary": "EternalBlue sur SMB (MS17-010), privesc SYSTEM direct via Metasploit.",
-    "body": "## Pattern : SMB exposé\n- `nmap --script smb-vuln-* IP`\n- MS17-010 => EternalBlue\n\n## Privesc\n- Meterpreter `getsystem` puis `hashdump`"
-  }
-}
-```
+## Opérations (`op`) pour modifier une note
 
-Réponse attendue : **HTTP 204** (accepté). Le workflow écrit la note, régénère
-l'index et redéploie le site en ~1 minute.
+| `op` | Effet | Champs requis |
+|---|---|---|
+| `append` *(défaut)* | Ajoute des sections **à la fin** | `body` |
+| `after` | Insère **après** une section existante | `after`, `body` |
+| `replace-section` | Réécrit **une** section | `section`, `body` |
+| `delete-section` | Supprime **une** section | `section` |
+| `replace` | Réécrit **tout** le corps | `body` |
+| `delete` | Supprime **la note entière** | *(rien)* |
 
-## Exemple curl
+`section` / `after` = le **titre** exact de la section (ex : `"Types de scan"`).
+Les `tags` fournis sont fusionnés ; `updated` est mis à jour automatiquement.
+
+## Exemples
+
+### Compléter une note (apprentissage)
 
 ```bash
 curl -X POST https://api.github.com/repos/a-jeaugey/cyber-lab/dispatches \
-  -H "Authorization: Bearer $GH_TOKEN" \
-  -H "Accept: application/vnd.github+json" \
-  -d @room.json
+  -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+  -d '{
+    "event_type": "contribute",
+    "client_payload": {
+      "target": "nmap",
+      "op": "append",
+      "tags": ["udp"],
+      "body": "## Scan UDP cheat\n- `nmap -sU --top-ports 20 IP` pour aller vite"
+    }
+  }'
 ```
 
-## Exemple CLI (dans le repo)
+### Insérer après une section précise
+
+```json
+{ "event_type": "contribute",
+  "client_payload": { "target": "nmap", "op": "after", "after": "Types de scan",
+    "body": "### -sn (ping scan)\nDécouverte d'hôtes sans scan de ports." } }
+```
+
+### Réécrire ou supprimer une section
+
+```json
+{ "event_type": "contribute",
+  "client_payload": { "target": "nmap", "op": "replace-section",
+    "section": "Types de scan", "body": "## Types de scan\nContenu mis à jour." } }
+```
+
+```json
+{ "event_type": "contribute",
+  "client_payload": { "target": "nmap", "op": "delete-section", "section": "NSE scripts" } }
+```
+
+### Créer une box de training (avec writeup)
 
 ```bash
-GH_TOKEN=xxx node scripts/add-room.mjs \
-  --title "Blue" --category rooms --platform THM --difficulty Easy \
-  --tags "smb,eternalblue,privesc" \
-  --summary "EternalBlue sur SMB, privesc SYSTEM." \
-  --body-file ./notes/blue.md
-
-# ou en écriture locale (sans réseau) :
-node scripts/add-room.mjs --local --title "Blue" --body "## ..."
+curl -X POST https://api.github.com/repos/a-jeaugey/cyber-lab/dispatches \
+  -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+  -d '{
+    "event_type": "add-room",
+    "client_payload": {
+      "title": "Blue", "category": "rooms", "platform": "THM", "difficulty": "Easy",
+      "tags": ["smb", "eternalblue", "privesc"],
+      "summary": "EternalBlue (MS17-010) sur SMB, SYSTEM direct.",
+      "body": "## Recon\n`nmap -sC -sV IP`\n\n## Foothold\nMS17-010 => EternalBlue\n\n## Privesc\nDéjà SYSTEM."
+    }
+  }'
 ```
 
-## Schéma du payload
+## CLI équivalente (dans le repo)
 
-| Champ        | Type       | Requis | Notes |
-|--------------|------------|--------|-------|
-| `title`      | string     | ✅     | Nom de la room / note |
-| `category`   | string     | ❌     | `linux`, `windows`, `networking`, `recon`, `exploitation`, `web`, `postexploit`, `cryptohash`, `scripting`, `rooms` (défaut : `rooms`) |
-| `platform`   | string     | ❌     | `THM`, `HTB`, … |
-| `difficulty` | string     | ❌     | `Easy`, `Medium`, `Hard`, `Fondamentaux` |
-| `status`     | string     | ❌     | `Terminée`, `En cours`, … |
-| `icon`       | string     | ❌     | Emoji |
-| `tags`       | string[]   | ❌     | Mots-clés (recherche) |
-| `summary`    | string     | ❌     | Une phrase |
-| `body`       | string     | ✅     | Markdown (titres `##`, listes, tables, blocs ```` ``` ````) |
-| `slug`       | string     | ❌     | Sinon dérivé du titre |
+```bash
+# Compléter
+GH_TOKEN=xxx node scripts/add-room.mjs --target nmap --op append --body-file appris.md
+GH_TOKEN=xxx node scripts/add-room.mjs --target nmap --op delete-section --section "NSE scripts"
 
-Schéma JSON complet : [`content/schema.json`](../content/schema.json).
+# Créer
+GH_TOKEN=xxx node scripts/add-room.mjs --title "Blue" --category rooms --platform THM \
+  --difficulty Easy --tags "smb,privesc" --body-file writeup.md
+
+# Écriture locale (sans réseau) + rebuild index
+node scripts/add-room.mjs --local --target nmap --body "### Astuce\n..."
+```
+
+## Catégories
+
+`linux` · `windows` · `networking` · `recon` · `exploitation` · `web` ·
+`postexploit` · `cryptohash` · `scripting` · `rooms` (boxes de training).
+
+- `category: rooms` → fichier dans `content/rooms/`
+- autre catégorie → `content/cheatsheets/`
 
 ## Conventions de contenu
 
-- Une note = un sujet. Découpe le corps en sections `##` (elles deviennent
-  des points d'ancrage cherchables individuellement).
-- Pour une room : le format « pattern / réflexe » marche bien (voir
-  `content/rooms/vulnversity.md`).
-- Les blocs de code indiquent le langage pour la coloration :
-  `bash`, `powershell`, `sql`, `python`, `javascript`.
+- Une section = un titre `##` (ou `###`). Elle devient cherchable individuellement.
+- Blocs de code avec langage pour la coloration : `bash`, `powershell`, `sql`, `python`, `javascript`.
+- Pour une box : structure `## Recon` / `## Foothold` / `## Privesc` conseillée.
 
-## Où atterrit la note
-
-- `category: rooms` → `content/rooms/<slug>.md`
-- toute autre catégorie → `content/cheatsheets/<slug>.md`
-
-Le nom de fichier est dérivé du titre ; en cas de collision, un suffixe
-numérique est ajouté (`blue-2.md`).
+Schéma JSON complet : [`content/schema.json`](../content/schema.json).

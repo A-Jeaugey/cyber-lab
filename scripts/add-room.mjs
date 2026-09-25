@@ -1,21 +1,24 @@
 #!/usr/bin/env node
 /**
- * add-room.mjs — CLI pour agents IA (et pour toi).
+ * add-room.mjs — CLI d'ingestion pour agents IA (et pour toi).
  *
- * Deux modes :
- *   • Distant (défaut) : déclenche le workflow via repository_dispatch.
- *       GH_TOKEN=… node scripts/add-room.mjs --title "Blue" --tags "smb,privesc" --body-file notes.md
- *   • Local (--local)  : écrit le fichier + régénère l'index dans le repo courant.
- *       node scripts/add-room.mjs --local --title "Blue" --body "## ..."
+ * Deux gestes :
+ *   • CRÉER une note / room :
+ *       --title "Blue" --category rooms --platform THM --difficulty Easy \
+ *       --tags "smb,privesc" --summary "…" --body-file writeup.md
+ *   • COMPLÉTER une note existante (append de sections) :
+ *       --target nmap --op append --body-file appris.md
+ *       --target nmap --after "Types de scan" --body "### -sn ping scan\n..."
  *
- * Options :
- *   --title, --category, --platform, --difficulty, --status, --icon,
- *   --tags "a,b,c", --summary, --body "…", --body-file path,
- *   --repo owner/repo (défaut a-jeaugey/cyber-lab), --local
+ * Modes d'exécution :
+ *   • distant (défaut) : repository_dispatch  ->  GH_TOKEN=… node scripts/add-room.mjs …
+ *   • local  : écrit dans le repo courant + régénère l'index  ->  --local
+ *
+ * Autres options : --status, --icon, --op replace, --repo owner/repo
  */
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { writeRoom } from './roomfile.mjs';
+import { applyContribution } from './roomfile.mjs';
 
 function parseArgs(argv) {
   const out = { _: [] };
@@ -24,7 +27,7 @@ function parseArgs(argv) {
     if (a.startsWith('--')) {
       const key = a.slice(2);
       const next = argv[i + 1];
-      if (next === undefined || next.startsWith('--')) { out[key] = true; }
+      if (next === undefined || next.startsWith('--')) out[key] = true;
       else { out[key] = next; i++; }
     } else out._.push(a);
   }
@@ -33,40 +36,44 @@ function parseArgs(argv) {
 
 const args = parseArgs(process.argv.slice(2));
 
-if (args.help || (!args.title && !args._.length)) {
-  console.log(`Usage:
-  Distant : GH_TOKEN=xxx node scripts/add-room.mjs --title "Blue" --category rooms \\
-              --platform THM --difficulty Easy --tags "smb,privesc" \\
-              --summary "…" --body-file notes.md
-  Local   : node scripts/add-room.mjs --local --title "Blue" --body "## Pattern ..."`);
+if (args.help || (!args.title && !args.target)) {
+  console.log(`Usage :
+  Créer   : GH_TOKEN=xxx node scripts/add-room.mjs --title "Blue" --category rooms \\
+              --platform THM --difficulty Easy --tags "smb,privesc" --body-file writeup.md
+  Compléter: GH_TOKEN=xxx node scripts/add-room.mjs --target nmap --op append --body-file appris.md
+  Local   : node scripts/add-room.mjs --local --target nmap --body "### Nouvelle astuce\\n..."`);
   process.exit(args.help ? 0 : 1);
 }
 
 const body = args['body-file'] ? readFileSync(args['body-file'], 'utf8') : (args.body || '');
 const payload = {
-  title: args.title,
-  category: args.category || 'rooms',
-  platform: args.platform || '',
-  difficulty: args.difficulty || '',
-  status: args.status || '',
-  icon: args.icon || '',
-  tags: args.tags || '',
-  summary: args.summary || '',
+  target: args.target || undefined,
+  op: args.op || undefined,
+  after: args.after || undefined,
+  section: args.section || undefined,
+  title: args.title || undefined,
+  category: args.category || undefined,
+  platform: args.platform || undefined,
+  difficulty: args.difficulty || undefined,
+  status: args.status || undefined,
+  icon: args.icon || undefined,
+  tags: args.tags || undefined,
+  summary: args.summary || undefined,
   body,
 };
 
 if (args.local) {
   try {
-    const { path, id } = writeRoom(payload);
-    console.log(`✓ écrit en local : ${path} (id=${id})`);
+    const r = applyContribution(payload);
+    console.log(`✓ ${r.action} en local : ${r.path} (id=${r.id})`);
     execFileSync('node', ['scripts/build-index.mjs'], { stdio: 'inherit' });
   } catch (e) { console.error('✗', e.message); process.exit(1); }
 } else {
   const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
   if (!token) { console.error('✗ GH_TOKEN manquant (ou utilise --local)'); process.exit(1); }
   const repo = args.repo || 'a-jeaugey/cyber-lab';
-  const url = `https://api.github.com/repos/${repo}/dispatches`;
-  const res = await fetch(url, {
+  const eventType = payload.target ? 'contribute' : 'add-room';
+  const res = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -74,8 +81,8 @@ if (args.local) {
       'Content-Type': 'application/json',
       'User-Agent': 'cyber-lab-add-room',
     },
-    body: JSON.stringify({ event_type: 'add-room', client_payload: payload }),
+    body: JSON.stringify({ event_type: eventType, client_payload: payload }),
   });
-  if (res.status === 204) console.log('✓ repository_dispatch envoyé. Le site se met à jour dans ~1 min.');
+  if (res.status === 204) console.log(`✓ dispatch "${eventType}" envoyé. Le site se met à jour dans ~1 min.`);
   else { console.error(`✗ échec ${res.status} : ${await res.text()}`); process.exit(1); }
 }

@@ -50,46 +50,54 @@ python3 -m http.server 8123
 
 ---
 
-## 🧠 Ajouter une room (toi ou tes agents IA)
+## 🧠 Alimenter le lab (toi ou tes agents IA)
 
-Un seul mécanisme, **sans login, token seul** : l'événement GitHub
-`repository_dispatch` (type `add-room`). Le workflow écrit la note, régénère
-l'index et redéploie le site (~1 min).
+**Sans login, token seul** : l'événement GitHub `repository_dispatch`. Deux gestes.
+
+| Geste | Quand | Event |
+|---|---|---|
+| **Compléter / modifier** une note existante | J'ai appris un truc sur un sujet déjà là (nmap, privesc…) | `contribute` |
+| **Créer** une note ou une box de training | Nouvelle box poppée, ou nouveau sujet | `add-room` |
+
+Le workflow applique le changement, régénère l'index et redéploie (~1 min).
 
 ### Depuis le site
-Bouton **« ＋ Ajouter une room »** → onglet *Formulaire* : colle un token GitHub
-(Contents: read & write), remplis les champs, envoie.
+Bouton **« ＋ »** → *Formulaire* : colle un token GitHub (Contents: read & write),
+choisis **Compléter une note** ou **Nouvelle note / box**, envoie.
 
-### Depuis un agent IA (ou en ligne de commande)
+### Compléter une note existante (apprentissage)
 
 ```bash
 curl -X POST https://api.github.com/repos/a-jeaugey/cyber-lab/dispatches \
-  -H "Authorization: Bearer $GH_TOKEN" \
-  -H "Accept: application/vnd.github+json" \
-  -d '{
-    "event_type": "add-room",
-    "client_payload": {
-      "title": "Blue",
-      "category": "rooms",
-      "platform": "THM",
-      "difficulty": "Easy",
-      "tags": ["smb", "eternalblue", "privesc"],
-      "summary": "EternalBlue sur SMB, privesc SYSTEM direct.",
-      "body": "## Pattern : SMB exposé\n- nmap --script smb-vuln-*\n- MS17-010 = EternalBlue"
-    }
-  }'
+  -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+  -d '{ "event_type": "contribute",
+        "client_payload": { "target": "nmap", "op": "append", "tags": ["udp"],
+          "body": "## Scan UDP\n- nmap -sU --top-ports 20 IP" } }'
 ```
 
-Ou via le script fourni :
+Opérations (`op`) : `append` (défaut) · `after` (après une section) ·
+`replace-section` · `delete-section` · `replace` (tout le corps) · `delete`
+(la note entière). Voir [`docs/AGENTS.md`](docs/AGENTS.md).
+
+### Créer une box de training (avec writeup)
 
 ```bash
-GH_TOKEN=xxx node scripts/add-room.mjs --title "Blue" --platform THM \
-  --tags "smb,privesc" --summary "…" --body-file notes.md
-
-node scripts/add-room.mjs --local --title "Blue" --body "## ..."   # écriture locale
+curl -X POST https://api.github.com/repos/a-jeaugey/cyber-lab/dispatches \
+  -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+  -d '{ "event_type": "add-room",
+        "client_payload": { "title": "Blue", "category": "rooms", "platform": "THM",
+          "difficulty": "Easy", "tags": ["smb"], "body": "## Recon\nnmap -sC -sV IP" } }'
 ```
 
-📄 Contrat complet pour les agents : [`docs/AGENTS.md`](docs/AGENTS.md) ·
+### CLI équivalente
+
+```bash
+GH_TOKEN=xxx node scripts/add-room.mjs --target nmap --op append --body-file appris.md
+GH_TOKEN=xxx node scripts/add-room.mjs --title "Blue" --category rooms --body-file writeup.md
+node scripts/add-room.mjs --local --target nmap --body "### Astuce\n..."   # sans réseau
+```
+
+📄 Contrat complet : [`docs/AGENTS.md`](docs/AGENTS.md) ·
 schéma : [`content/schema.json`](content/schema.json).
 
 ---
@@ -117,8 +125,8 @@ cyber-lab/
 │   └── schema.json            # schéma du payload d'ingestion
 ├── scripts/
 │   ├── build-index.mjs        # scanne content/ → index.json
-│   ├── roomfile.mjs           # logique de création d'une note
-│   ├── write-room.mjs         # utilisé par le workflow
+│   ├── roomfile.mjs           # logique create/append/replace/delete d'une note
+│   ├── write-note.mjs         # utilisé par le workflow (repository_dispatch)
 │   └── add-room.mjs           # CLI pour agents / usage local
 └── .github/workflows/
     ├── deploy.yml             # build + déploiement Pages

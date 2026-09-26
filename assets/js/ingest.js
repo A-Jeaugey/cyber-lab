@@ -93,7 +93,14 @@ export function initIngest({ index }) {
         </div>
 
         <div data-panel="agent" hidden>
-          <div class="callout">Les agents IA appellent directement l'API GitHub avec un token. Pas de site, pas de login, pas de <code>git clone</code>. Deux events selon le geste.</div>
+          <div class="callout"><strong>Agent distant (sans ton repo) → ne lui donne PAS ton token GitHub.</strong> Héberge le proxy (dossier <code>ingest/</code>) qui garde ton token côté serveur, et donne à l'agent juste l'URL + une <em>clé de lab</em>.</div>
+          <div class="field"><label>Appel de l'agent — via le proxy (clé de lab, pas de token GH)</label>
+            <pre class="dispatch-pre">curl -X POST "$LAB_URL" \
+  -H "x-lab-key: $LAB_KEY" -H "content-type: application/json" \
+  -d '{"target":"nmap","op":"append","body":"## Scan UDP\n- nmap -sU IP"}'</pre>
+          </div>
+          <div class="callout" style="margin-top:4px">Agent qui a <em>déjà</em> le repo : pas de token non plus → <code>node scripts/add-room.mjs --local --commit …</code>. Détails : <code>docs/AGENTS.md</code>.</div>
+          <div class="callout" style="margin-top:4px"><strong>Toi</strong>, avec ton token (formulaire ci-dessus, ou appel GitHub direct) :</div>
           <div class="field"><label>1 · Compléter une note existante (event « contribute »)</label>
             <pre class="dispatch-pre" id="agent-contribute"></pre>
             <button class="side-btn" id="copy-contribute" style="margin-top:10px;max-width:220px">Copier</button>

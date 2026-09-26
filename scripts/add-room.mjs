@@ -38,10 +38,16 @@ const args = parseArgs(process.argv.slice(2));
 
 if (args.help || (!args.title && !args.target)) {
   console.log(`Usage :
-  Créer   : GH_TOKEN=xxx node scripts/add-room.mjs --title "Blue" --category rooms \\
-              --platform THM --difficulty Easy --tags "smb,privesc" --body-file writeup.md
-  Compléter: GH_TOKEN=xxx node scripts/add-room.mjs --target nmap --op append --body-file appris.md
-  Local   : node scripts/add-room.mjs --local --target nmap --body "### Nouvelle astuce\\n..."`);
+
+  SANS TOKEN (agent qui a déjà le repo — recommandé) :
+    node scripts/add-room.mjs --local --commit --target nmap --op append --body-file appris.md
+    node scripts/add-room.mjs --local --commit --title "Blue" --category rooms --body-file writeup.md
+    → écrit la note, régénère l'index, commit + push (auth git de la session, aucun token).
+      (--no-push pour committer sans pousser ; sans --commit, écrit seulement.)
+
+  AVEC TOKEN (agent distant, sans accès au repo) :
+    GH_TOKEN=xxx node scripts/add-room.mjs --target nmap --op append --body-file appris.md
+    → déclenche repository_dispatch (le token ne part que sur api.github.com).`);
   process.exit(args.help ? 0 : 1);
 }
 
@@ -65,8 +71,22 @@ const payload = {
 if (args.local) {
   try {
     const r = applyContribution(payload);
-    console.log(`✓ ${r.action} en local : ${r.path} (id=${r.id})`);
+    console.log(`✓ ${r.action} : ${r.path} (id=${r.id})`);
     execFileSync('node', ['scripts/build-index.mjs'], { stdio: 'inherit' });
+    // --commit : commit + push (aucun token, utilise l'auth git de la session)
+    if (args.commit) {
+      const msg = args.message || `notes: ${r.action} ${r.id}`;
+      execFileSync('git', ['add', '-A', 'content'], { stdio: 'inherit' });
+      try {
+        execFileSync('git', ['commit', '-m', msg], { stdio: 'inherit' });
+      } catch { console.log('(rien à committer)'); process.exit(0); }
+      if (args['no-push'] === undefined) {
+        execFileSync('git', ['push'], { stdio: 'inherit' });
+        console.log('✓ committé + poussé — le site se met à jour dans ~1 min.');
+      } else {
+        console.log('✓ committé (push à faire manuellement).');
+      }
+    }
   } catch (e) { console.error('✗', e.message); process.exit(1); }
 } else {
   const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;

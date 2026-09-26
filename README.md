@@ -52,16 +52,26 @@ python3 -m http.server 8123
 
 ## 🧠 Alimenter le lab (toi ou tes agents IA)
 
-**Sans login, token seul** : l'événement GitHub `repository_dispatch`. Deux gestes.
-
-| Geste | Quand | Event |
-|---|---|---|
-| **Compléter / modifier** une note existante | J'ai appris un truc sur un sujet déjà là (nmap, privesc…) | `contribute` |
-| **Créer** une note ou une box de training | Nouvelle box poppée, ou nouveau sujet | `add-room` |
-
+Deux gestes : **compléter/modifier** une note existante (`op` = `append`, `after`,
+`replace-section`, `delete-section`, `replace`, `delete`) ou **créer** une note/box.
 Le workflow applique le changement, régénère l'index et redéploie (~1 min).
 
-### Depuis le site
+**Qui écrit, et comment (important) :**
+
+| Cas | Comment | Token ? |
+|---|---|---|
+| Agent **distant** (sans ton repo) | Proxy → clé de lab. Voir [`ingest/`](ingest/) | ❌ jamais le token GH sur l'agent |
+| Agent **avec** le repo (checkout) | `node scripts/add-room.mjs --local --commit …` | ❌ auth git de la session |
+| **Toi** | Formulaire du site, ou `curl` direct ci-dessous | ✅ ton token, dans ton navigateur/shell |
+
+> 🔐 **Ne colle jamais ton token GitHub à un agent distant.** Un agent qui refuse
+> ton PAT a raison. Utilise le proxy [`ingest/`](ingest/) : il garde ton token
+> côté serveur et ne donne à l'agent qu'une clé de lab révocable, incapable de
+> faire autre chose qu'ajouter une note ici.
+
+Doc agents complète : [`docs/AGENTS.md`](docs/AGENTS.md).
+
+### Depuis le site (toi, avec ton token)
 Bouton **« ＋ »** → *Formulaire* : colle un token GitHub (Contents: read & write),
 choisis **Compléter une note** ou **Nouvelle note / box**, envoie.
 
@@ -89,12 +99,14 @@ curl -X POST https://api.github.com/repos/a-jeaugey/cyber-lab/dispatches \
           "difficulty": "Easy", "tags": ["smb"], "body": "## Recon\nnmap -sC -sV IP" } }'
 ```
 
-### CLI équivalente
+### CLI
 
 ```bash
+# Dans un checkout du repo (aucun token) — écrit + index + commit + push :
+node scripts/add-room.mjs --local --commit --target nmap --op append --body-file appris.md
+
+# Toi, avec ton token, sans checkout — déclenche repository_dispatch :
 GH_TOKEN=xxx node scripts/add-room.mjs --target nmap --op append --body-file appris.md
-GH_TOKEN=xxx node scripts/add-room.mjs --title "Blue" --category rooms --body-file writeup.md
-node scripts/add-room.mjs --local --target nmap --body "### Astuce\n..."   # sans réseau
 ```
 
 📄 Contrat complet : [`docs/AGENTS.md`](docs/AGENTS.md) ·
@@ -127,7 +139,11 @@ cyber-lab/
 │   ├── build-index.mjs        # scanne content/ → index.json
 │   ├── roomfile.mjs           # logique create/append/replace/delete d'une note
 │   ├── write-note.mjs         # utilisé par le workflow (repository_dispatch)
-│   └── add-room.mjs           # CLI pour agents / usage local
+│   └── add-room.mjs           # CLI (--local --commit sans token, ou dispatch)
+├── ingest/                    # proxy pour agents distants (garde le token GH côté serveur)
+│   ├── worker.js              # Cloudflare Worker : clé de lab → repository_dispatch
+│   ├── wrangler.toml
+│   └── README.md              # déploiement (2 min)
 └── .github/workflows/
     ├── deploy.yml             # build + déploiement Pages
     └── add-room.yml           # ingestion repository_dispatch

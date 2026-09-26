@@ -1,29 +1,68 @@
 # Alimenter le Cyber Lab (pour agents IA)
 
-Le lab s'enrichit **sans login, avec un token seul**, via l'événement GitHub
-`repository_dispatch`. Un agent n'a besoin ni de cloner le dépôt, ni d'ouvrir
-une PR : un seul appel HTTP.
+Deux gestes possibles :
 
-Deux gestes, un seul mécanisme :
+| Geste | Quand | `op` / event |
+|---|---|---|
+| **Compléter / modifier** une note existante | J'ai appris un truc sur un sujet déjà présent (nmap, privesc…) | `target` + `op` |
+| **Créer** une note ou une box | Nouvelle box poppée en training, ou nouveau sujet | `title` (+ `category`) |
 
-| Geste | Quand | Event | Payload clé |
-|---|---|---|---|
-| **Compléter / modifier** une note existante | J'ai appris un truc sur un sujet déjà présent (nmap, privesc…) | `contribute` | `target` + `op` |
-| **Créer** une note ou une box | Nouvelle box poppée en training, ou nouveau sujet | `add-room` | `title` (+ `category`) |
+La liste des notes existantes (valeurs de `target`) est dans `content/index.json`
+(champ `entries[].id`) — ex : `nmap`, `linux-terminal`, `privilege-escalation`.
 
-## Ce dont tu as besoin
+---
 
-- Un token GitHub avec **Contents: read & write** sur `a-jeaugey/cyber-lab`
-  (fine-grained token recommandé, ou classic PAT scope `repo`).
-- La liste des notes existantes (valeurs possibles de `target`) : lis
-  `content/index.json` (champ `entries[].id`) — ex : `nmap`, `linux-terminal`,
-  `privilege-escalation`, `hashing`, …
+## ✅ Voie A — agent DISTANT sans accès au repo (le cas courant)
 
-## Endpoint
+Tu es un agent qui n'a PAS le repo et à qui on **ne doit pas** confier un token
+GitHub ? C'est le cas normal. On passe par un **proxy** : l'utilisateur héberge
+un mini-Worker qui garde SON token GitHub côté serveur, et te donne seulement
+une **clé de lab** (une chaîne dédiée, révocable, qui ne sait faire qu'ajouter
+une note à ce lab). Tu n'as **jamais** le token GitHub.
+
+```
+toi  ──(clé de lab)──►  Worker  ──(token GH, secret serveur)──►  GitHub
+```
+
+Tu appelles l'URL du Worker avec la clé de lab dans l'en-tête `x-lab-key` :
+
+```bash
+curl -X POST "$LAB_URL" \
+  -H "x-lab-key: $LAB_KEY" -H "content-type: application/json" \
+  -d '{ "target": "nmap", "op": "append",
+        "body": "## Scan UDP\n- nmap -sU --top-ports 20 IP" }'
+```
+
+Créer une box : même appel avec `title` + `category` au lieu de `target`.
+Mise en place du Worker (côté utilisateur) : [`ingest/README.md`](../ingest/README.md).
+
+> ⚠️ **Ne demande jamais le token GitHub à l'utilisateur.** S'il n'a pas encore
+> de proxy, dis-lui d'en déployer un (`ingest/`), ou de coller lui-même ta note
+> dans le formulaire du site. Toi, tu ne portes que la clé de lab.
+
+## Voie B — agent qui a DÉJÀ le repo (commit direct, sans token)
+
+Si tu opères dans un checkout du dépôt (tu peux éditer des fichiers et `git push`),
+tu n'as besoin d'aucun token : le `git push` utilise l'auth git de la session.
+
+```bash
+node scripts/add-room.mjs --local --commit --target nmap --op append --body-file appris.md
+node scripts/add-room.mjs --local --commit --title "Blue" --category rooms --body-file writeup.md
+```
+
+`--local --commit` = écrit le `.md` + régénère l'index + `git add`/`commit`/`push`.
+
+## Voie C — l'utilisateur tient lui-même le token
+
+Le formulaire du site (bouton `+`) et l'appel `repository_dispatch` direct
+utilisent un token GitHub — mais c'est **l'utilisateur** qui le saisit, dans son
+navigateur ou son shell, jamais un agent distant.
+
+### Endpoint direct (event `contribute` ou `add-room`)
 
 ```http
 POST https://api.github.com/repos/a-jeaugey/cyber-lab/dispatches
-Authorization: Bearer <TOKEN>
+Authorization: Bearer <TOKEN saisi par l'utilisateur>
 Accept: application/vnd.github+json
 ```
 

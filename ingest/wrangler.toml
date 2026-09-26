@@ -1,0 +1,7 @@
+name = "cyber-lab-ingest"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Dépôt cible (public). Le token et la clé sont des SECRETS (voir README).
+[vars]
+REPO = "a-jeaugey/cyber-lab"

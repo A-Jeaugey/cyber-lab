@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="dark">
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Cyber Lab</title>
   <meta name="description" content="Cyber lab : notes de cybersécurité offensive, cheatsheets par sujet et write-ups de box (TryHackMe, HTB), rangés et cherchables. Mis à jour au fil des rooms.">
-  <meta name="theme-color" content="#06080d" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="#f4f6fb" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121211" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f2f0e9" media="(prefers-color-scheme: light)">
   <meta name="color-scheme" content="dark light">
 
   <!-- Open Graph -->
@@ -18,9 +18,19 @@
   <link rel="apple-touch-icon" href="assets/icons/icon.svg">
   <link rel="manifest" href="assets/manifest.webmanifest">
 
+  <!-- Thème appliqué avant le rendu (évite le flash) -->
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('clab-theme'); } catch (e) {}
+      if (!t) t = window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="assets/css/styles.css">
 </head>
@@ -29,31 +39,28 @@
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
       <a class="brand" href="#/">
-        <div class="brand-mark">&gt;_</div>
-        <div>
-          <div class="brand-name">Cyber<span>Lab</span></div>
-          <div class="brand-sub">Arthur Jeaugey</div>
-        </div>
+        <span class="brand-name"><span class="brand-prompt">~/</span>cyber-lab</span>
+        <span class="brand-sub">Arthur Jeaugey</span>
       </a>
-      <button class="search-trigger" id="search-trigger">
-        <span>⌕</span><span>Rechercher…</span><span class="kbd">Ctrl K</span>
+      <button class="search-field" id="search-trigger" type="button">
+        <span>rechercher…</span><span class="kbd">⌘K</span>
       </button>
-      <nav class="nav" id="nav"></nav>
+      <nav class="nav" id="nav" aria-label="Sommaire du lab"></nav>
       <div class="sidebar-foot">
-        <button class="side-btn primary" id="add-btn-side">＋ Ajouter une note</button>
-        <a class="side-btn" href="https://github.com/a-jeaugey/cyber-lab" target="_blank" rel="noopener noreferrer">★ Voir sur GitHub</a>
+        <button class="text-btn" id="add-btn-side" type="button">+ ajouter une note</button>
+        <a class="text-btn" href="https://github.com/a-jeaugey/cyber-lab" target="_blank" rel="noopener noreferrer">source ↗</a>
       </div>
     </aside>
 
     <!-- MAIN -->
     <div class="main">
       <header class="topbar">
-        <button class="hamburger" id="hamburger" aria-label="Menu">☰</button>
-        <nav class="crumbs" id="crumbs"></nav>
+        <button class="tb-btn hamburger" id="hamburger" type="button" aria-label="Menu">menu</button>
+        <nav class="crumbs" id="crumbs" aria-label="Fil d'Ariane"></nav>
         <div class="topbar-spacer"></div>
-        <button class="icon-btn" id="search-btn" title="Rechercher (Ctrl+K)" aria-label="Rechercher">⌕</button>
-        <button class="icon-btn" id="theme-btn" title="Changer de thème" aria-label="Thème">◐</button>
-        <button class="icon-btn" id="add-btn-top" title="Ajouter une note" aria-label="Ajouter">＋</button>
+        <button class="tb-btn" id="search-btn" type="button" title="Rechercher (Ctrl+K)">rechercher <span class="kbd">⌘K</span></button>
+        <button class="tb-btn" id="theme-btn" type="button" title="Changer de thème">thème</button>
+        <button class="tb-btn" id="add-btn-top" type="button" title="Ajouter une note" aria-label="Ajouter une note">+</button>
         <div class="progress" id="progress"></div>
       </header>
       <main class="content" id="view"></main>
@@ -66,13 +73,13 @@
   <div class="palette-backdrop" id="palette">
     <div class="palette" role="dialog" aria-modal="true" aria-label="Recherche">
       <div class="palette-input-row">
-        <span class="pi-icon">⌕</span>
-        <input id="palette-input" type="text" placeholder="Rechercher une notion, une commande, une room…" autocomplete="off" spellcheck="false" aria-label="Recherche">
-        <span class="kbd">Esc</span>
+        <span class="pi-prompt">›</span>
+        <input id="palette-input" type="text" placeholder="commande, outil, notion, room…" autocomplete="off" spellcheck="false" aria-label="Recherche">
+        <span class="kbd">esc</span>
       </div>
       <div class="palette-results" id="palette-results"></div>
       <div class="palette-foot">
-        <span><span class="kbd">↑</span><span class="kbd">↓</span> naviguer</span>
+        <span><span class="kbd">↑↓</span> naviguer</span>
         <span><span class="kbd">↵</span> ouvrir</span>
         <span><span class="kbd">esc</span> fermer</span>
       </div>

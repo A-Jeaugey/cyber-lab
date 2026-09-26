@@ -59,21 +59,19 @@ async function boot() {
    ============================================================ */
 function buildSidebar() {
   const nav = $('#nav');
-  const groups = state.index.categories.map((cat) => {
+  const groups = state.index.categories.map((cat, i) => {
     const items = state.index.entries.filter((e) => e.category === cat.id);
     if (!items.length) return '';
-    return `<div class="nav-group" data-cat="${cat.id}">
-      <div class="nav-group-title"><span class="dot"></span>${escapeHtml(cat.label)}</div>
-      ${items.map((e) => `<a class="nav-item" href="#/note/${e.id}" data-id="${e.id}">
-        <span class="ni-icon">${e.icon}</span><span>${escapeHtml(e.title)}</span></a>`).join('')}
-    </div>`;
+    return `<section class="nav-group">
+      <div class="nav-group-title"><span class="ng-num">${String(i + 1).padStart(2, '0')}</span>${escapeHtml(cat.label)}</div>
+      ${items.map((e) => `<a class="nav-item" href="#/note/${e.id}" data-id="${e.id}">${escapeHtml(e.title)}</a>`).join('')}
+    </section>`;
   }).join('');
-  nav.innerHTML = `<a class="nav-home" href="#/">◆ Accueil</a>${groups}`;
+  nav.innerHTML = `<a class="nav-home" href="#/">index</a>${groups}`;
 }
 
 function setActiveNav(id) {
   $$('.nav-item').forEach((a) => a.classList.toggle('active', a.dataset.id === id));
-  $$('.nav-item').forEach((a) => { a.closest('.nav-group')?.setAttribute('data-cat', a.closest('.nav-group').dataset.cat); });
   $('.nav-home')?.classList.toggle('active', !id);
 }
 
@@ -155,150 +153,133 @@ function setCrumbs(items) {
    ============================================================ */
 function renderHome() {
   setActiveNav(null);
-  setCrumbs([{ label: 'Accueil' }]);
+  setCrumbs([{ label: 'index' }]);
   const { stats, categories, entries } = state.index;
-  const recent = [...entries].sort((a, b) => (b.updated || '').localeCompare(a.updated || '')).slice(0, 6);
+  const recent = [...entries].sort((a, b) => (b.updated || '').localeCompare(a.updated || '')).slice(0, 8);
   const tagFreq = new Map();
   for (const e of entries) for (const t of e.tags) tagFreq.set(t, (tagFreq.get(t) || 0) + 1);
-  const topTags = [...tagFreq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 28);
+  const topTags = [...tagFreq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 32);
+  const counts = new Map(categories.map((c) => [c.id, entries.filter((e) => e.category === c.id).length]));
 
   $('#view').innerHTML = `
-    <section class="hero reveal">
-      <span class="hero-badge"><span class="pulse"></span>Cybersécurité offensive · TryHackMe & HTB</span>
-      <h1>Un lab cyber <span class="grad">vivant</span>.<br>Notes de pentest & write-ups de box.</h1>
-      <p class="lead">Cheatsheets par sujet, méthodes offensives et write-ups de box (TryHackMe, HTB…) — rangés, indexés et cherchables à la volée. Un carnet de cybersécurité offensive, enrichi au fil des rooms.</p>
-      <div class="hero-actions">
-        <button class="btn primary" id="hero-search">⌕ Rechercher une notion <span class="kbd">Ctrl K</span></button>
-        <button class="btn" id="hero-browse">▤ Parcourir les sujets</button>
-        <a class="btn" href="#/note/${recent[0]?.id || entries[0].id}">↳ Dernier ajout</a>
+    <header class="home-head">
+      <div class="kicker">Cybersécurité offensive · TryHackMe · HTB</div>
+      <h1 class="home-title">Manuel de terrain.</h1>
+      <p class="home-desc">Cheatsheets par sujet, méthodes offensives et write-ups de box — rangés, indexés et cherchables. Un carnet de pentest tenu au fil des rooms.</p>
+      <dl class="factbar">
+        <div><dt>notes</dt><dd>${stats.entries}</dd></div>
+        <div><dt>sujets</dt><dd>${stats.categories}</dd></div>
+        <div><dt>sections</dt><dd>${stats.sections}</dd></div>
+        <div><dt>rooms</dt><dd>${stats.rooms}</dd></div>
+      </dl>
+    </header>
+
+    <section class="block">
+      <div class="block-head"><h2>Sommaire</h2><span>${categories.length} sujets</span></div>
+      <ol class="index">
+        ${categories.map((c, i) => `<li><a class="index-row" href="#/cat/${c.id}">
+          <span class="ix-num">${String(i + 1).padStart(2, '0')}</span>
+          <span class="ix-label">${escapeHtml(c.label)}</span>
+          <span class="ix-desc">${escapeHtml(c.blurb || '')}</span>
+          <span class="ix-dots" aria-hidden="true"></span>
+          <span class="ix-count">${counts.get(c.id)}</span>
+        </a></li>`).join('')}
+      </ol>
+    </section>
+
+    <section class="block">
+      <div class="block-head"><h2>Derniers ajouts</h2><span>maj</span></div>
+      <ul class="rows">${recent.map(rowItem).join('')}</ul>
+    </section>
+
+    <section class="block">
+      <div class="block-head"><h2>Tags</h2><span>${topTags.length}</span></div>
+      <div class="tagrow">
+        ${topTags.map(([t, n]) => `<a href="#/tag/${encodeURIComponent(t)}">${escapeHtml(t)}<span>${n}</span></a>`).join('')}
       </div>
     </section>
 
-    <div class="stats">
-      ${statCard(stats.entries, 'Notes')}
-      ${statCard(stats.sections, 'Sections indexées')}
-      ${statCard(stats.tags, 'Tags')}
-      ${statCard(stats.rooms, 'Rooms')}
-    </div>
-
-    <div class="section-head reveal" id="explore"><h2>Explorer par sujet</h2><span class="hint">${categories.length} catégories</span></div>
-    <div class="cat-grid">
-      ${categories.map((c) => {
-        const n = entries.filter((e) => e.category === c.id).length;
-        return `<a class="cat-card reveal" data-cat="${c.id}" href="#/cat/${c.id}">
-          <div class="cc-top"><span class="cc-icon">${c.icon}</span><span class="cc-count">${n} note${n > 1 ? 's' : ''}</span></div>
-          <h3>${escapeHtml(c.label)}</h3><p>${escapeHtml(c.blurb || '')}</p></a>`;
-      }).join('')}
-    </div>
-
-    <div class="section-head reveal"><h2>Dernières notes</h2><span class="hint">récemment mises à jour</span></div>
-    <div class="note-grid">${recent.map(noteCard).join('')}</div>
-
-    <div class="section-head reveal"><h2>Tags</h2><span class="hint">accès rapide</span></div>
-    <div class="tag-cloud reveal">
-      ${topTags.map(([t, n]) => `<a class="tag-pill" href="#/tag/${encodeURIComponent(t)}">${escapeHtml(t)}<b>${n}</b></a>`).join('')}
-    </div>
-
-    <footer class="home-foot reveal">
-      <div>
-        <div class="hf-title">Cyber Lab</div>
-        <div class="hf-sub">Carnet de cybersécurité offensive d'Arthur Jeaugey — mis à jour au fil des rooms.</div>
-      </div>
-      <a class="hf-link" href="https://github.com/a-jeaugey/cyber-lab" target="_blank" rel="noopener noreferrer">Code source · GitHub ↗</a>
+    <footer class="page-foot">
+      <span>Cyber Lab — Arthur Jeaugey · mise à jour continue</span>
+      <a href="https://github.com/a-jeaugey/cyber-lab" target="_blank" rel="noopener noreferrer">source ↗</a>
     </footer>`;
-
-  $('#hero-search').addEventListener('click', openPalette);
-  $('#hero-browse')?.addEventListener('click', () => document.getElementById('explore')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-  animateStats();
-  observeReveal();
 }
 
-function statCard(num, label) {
-  return `<div class="stat reveal"><div class="num" data-to="${num}">0</div><div class="label">${label}</div></div>`;
-}
-
-function noteCard(e) {
-  const meta = [e.platform, e.difficulty].filter(Boolean);
-  return `<a class="note-card reveal" data-cat="${e.category}" href="#/note/${e.id}">
-    <div class="nc-head"><span class="nc-icon">${e.icon}</span><span class="nc-title">${escapeHtml(e.title)}</span>
-      <span class="nc-cat">${escapeHtml(e.categoryLabel)}</span></div>
-    <p>${escapeHtml(e.summary || '')}</p>
-    <div class="chip-row">
-      ${meta.map((m) => `<span class="chip meta">${escapeHtml(m)}</span>`).join('')}
-      ${e.tags.slice(0, 3).map((t) => `<span class="chip">${escapeHtml(t)}</span>`).join('')}
-    </div></a>`;
+function rowItem(e) {
+  const meta = [e.categoryLabel, e.platform, e.difficulty].filter(Boolean).join(' · ');
+  return `<li><a class="row" href="#/note/${e.id}">
+    <span class="row-title">${escapeHtml(e.title)}</span>
+    <span class="row-meta">${escapeHtml(meta)}</span>
+    <span class="row-date">${escapeHtml(e.updated || '')}</span>
+  </a></li>`;
 }
 
 function renderCategory(catId) {
   const cat = state.catById.get(catId);
   if (!cat) return renderHome();
   setActiveNav(null);
-  setCrumbs([{ label: 'Accueil', href: '#/' }, { label: cat.label }]);
+  setCrumbs([{ label: 'index', href: '#/' }, { label: cat.label }]);
   const items = state.index.entries.filter((e) => e.category === catId);
   $('#view').innerHTML = `
-    <section class="hero reveal" data-cat="${catId}" style="padding-bottom:0">
-      <span class="hero-badge"><span class="pulse"></span>${escapeHtml(cat.icon)} Catégorie</span>
-      <h1 style="font-size:clamp(30px,5vw,52px);margin-bottom:8px">${escapeHtml(cat.label)}</h1>
-      <p class="lead">${escapeHtml(cat.blurb || '')}</p>
-    </section>
-    <div class="note-grid" style="margin-top:28px">${items.map(noteCard).join('')}</div>`;
-  observeReveal();
+    <header class="home-head">
+      <div class="kicker">Sujet</div>
+      <h1 class="home-title">${escapeHtml(cat.label)}</h1>
+      <p class="home-desc">${escapeHtml(cat.blurb || '')}</p>
+    </header>
+    <section class="block">
+      <div class="block-head"><h2>Notes</h2><span>${items.length}</span></div>
+      <ul class="rows">${items.map(rowItem).join('')}</ul>
+    </section>`;
 }
 
 function renderTag(tag) {
   setActiveNav(null);
-  setCrumbs([{ label: 'Accueil', href: '#/' }, { label: 'Tags', href: '#/' }, { label: `#${tag}` }]);
+  setCrumbs([{ label: 'index', href: '#/' }, { label: 'tags' }, { label: tag }]);
   const items = state.index.entries.filter((e) => e.tags.includes(tag));
   $('#view').innerHTML = `
-    <section class="hero reveal" style="padding-bottom:0">
-      <span class="hero-badge"><span class="pulse"></span>Tag</span>
-      <h1 style="font-size:clamp(30px,5vw,52px)"><span class="grad">#${escapeHtml(tag)}</span></h1>
-      <p class="lead">${items.length} note${items.length > 1 ? 's' : ''} taguée${items.length > 1 ? 's' : ''}.</p>
-    </section>
-    <div class="note-grid" style="margin-top:28px">${items.map(noteCard).join('') || emptyState('Aucune note pour ce tag.')}</div>`;
-  observeReveal();
+    <header class="home-head">
+      <div class="kicker">Tag</div>
+      <h1 class="home-title">${escapeHtml(tag)}</h1>
+      <p class="home-desc">${items.length} note${items.length > 1 ? 's' : ''} associée${items.length > 1 ? 's' : ''}.</p>
+    </header>
+    <section class="block">
+      <ul class="rows">${items.map(rowItem).join('') || `<li class="row-empty">Aucune note pour ce tag.</li>`}</ul>
+    </section>`;
 }
 
 function renderEntry(id, anchor) {
   const e = state.entriesById.get(id);
   if (!e) { $('#view').innerHTML = emptyState(`Note « ${escapeHtml(id)} » introuvable.`); return; }
   setActiveNav(id);
-  setCrumbs([{ label: 'Accueil', href: '#/' }, { label: e.categoryLabel, href: `#/cat/${e.category}` }, { label: e.title }]);
+  setCrumbs([{ label: 'index', href: '#/' }, { label: e.categoryLabel, href: `#/cat/${e.category}` }, { label: e.title }]);
 
   const order = state.index.entries;
   const i = order.findIndex((x) => x.id === id);
   const prev = order[i - 1];
   const next = order[i + 1];
 
-  const meta = [];
-  if (e.platform) meta.push(chip(e.platform, true));
-  if (e.difficulty) meta.push(chip(e.difficulty, true));
-  if (e.status) meta.push(chip(e.status));
-  if (e.updated) meta.push(chip(`maj ${e.updated}`));
-  meta.push(chip(`${e.wordCount} mots`));
-  meta.push(chip(`${e.source}`));
+  const meta = [e.platform, e.difficulty, e.status, e.updated ? `maj ${e.updated}` : '', `${e.wordCount} mots`].filter(Boolean);
 
   const tocHeadings = e.headings.filter((h) => h.level === 2 || h.level === 3);
   const toc = tocHeadings.length ? `
     <aside class="toc"><div class="toc-title">Sur cette page</div>
-      ${tocHeadings.map((h) => `<a href="#/note/${e.id}/${h.anchor}" class="toc-link lvl${h.level}" data-anchor="${h.anchor}">${escapeHtml(h.text)}</a>`).join('')}
+      <ol class="toc-list">${tocHeadings.map((h) => `<li><a href="#/note/${e.id}/${h.anchor}" class="toc-link lvl${h.level}" data-anchor="${h.anchor}">${escapeHtml(h.text)}</a></li>`).join('')}</ol>
     </aside>` : '<aside></aside>';
 
   $('#view').innerHTML = `
-    <div class="entry-layout" data-cat="${e.category}">
+    <div class="entry-layout">
       <article class="article">
-        <header class="entry-header" data-cat="${e.category}">
-          <div class="eh-cat"><span class="dot"></span>${escapeHtml(e.categoryLabel)}</div>
-          <div class="entry-title"><span class="et-icon">${e.icon}</span><h1>${escapeHtml(e.title)}</h1></div>
+        <header class="entry-head">
+          <div class="kicker">${escapeHtml(e.categoryLabel)}</div>
+          <h1>${escapeHtml(e.title)}</h1>
           ${e.summary ? `<p class="entry-summary">${escapeHtml(e.summary)}</p>` : ''}
-          <div class="meta-row">${meta.join('')}
-            ${e.tags.map((t) => `<a class="chip" href="#/tag/${encodeURIComponent(t)}">#${escapeHtml(t)}</a>`).join('')}
-          </div>
+          <div class="entry-meta">${meta.map((m) => `<span>${escapeHtml(m)}</span>`).join('')}</div>
+          ${e.tags.length ? `<div class="entry-tags">${e.tags.map((t) => `<a href="#/tag/${encodeURIComponent(t)}">${escapeHtml(t)}</a>`).join('')}</div>` : ''}
         </header>
         <div class="md">${renderMarkdown(e.body)}</div>
         <nav class="pager">
-          ${prev ? `<a class="prev" href="#/note/${prev.id}"><div class="dir">← Précédent</div><div class="ttl">${escapeHtml(prev.title)}</div></a>` : '<span></span>'}
-          ${next ? `<a class="next" href="#/note/${next.id}"><div class="dir">Suivant →</div><div class="ttl">${escapeHtml(next.title)}</div></a>` : '<span></span>'}
+          ${prev ? `<a class="prev" href="#/note/${prev.id}"><span class="dir">← précédent</span><span class="ttl">${escapeHtml(prev.title)}</span></a>` : '<span></span>'}
+          ${next ? `<a class="next" href="#/note/${next.id}"><span class="dir">suivant →</span><span class="ttl">${escapeHtml(next.title)}</span></a>` : '<span></span>'}
         </nav>
       </article>
       ${toc}
@@ -311,11 +292,8 @@ function renderEntry(id, anchor) {
   }
 }
 
-function chip(text, meta = false) {
-  return `<span class="chip${meta ? ' meta' : ''}">${escapeHtml(text)}</span>`;
-}
 function emptyState(msg) {
-  return `<div class="empty-state"><div class="es-icon">🔍</div><h2>Rien ici</h2><p>${msg}</p><p><a class="btn" href="#/">← Retour à l'accueil</a></p></div>`;
+  return `<div class="empty-state"><h2>Introuvable</h2><p>${msg}</p><p><a class="text-btn" href="#/">← retour à l'index</a></p></div>`;
 }
 
 /* ============================================================
@@ -397,8 +375,7 @@ function paletteRow(r, i, q) {
   const rec = r.rec;
   const title = rec.heading || rec.entryTitle;
   const sub = rec.heading ? rec.entryTitle : (rec.text || '');
-  return `<div class="p-result" data-idx="${i}" data-cat="${rec.category}">
-    <span class="pr-icon">${rec.entryIcon || '📄'}</span>
+  return `<div class="p-result" data-idx="${i}">
     <div class="pr-body">
       <div class="pr-title">${highlightTokens(title, q, 80)}</div>
       <div class="pr-sub">${highlightTokens(sub, q, 90)}</div>
@@ -426,34 +403,6 @@ function commitActive() {
   const { entryId, anchor, type } = r.rec;
   closePalette();
   location.hash = type === 'section' && anchor && anchor !== 'top' ? `#/note/${entryId}/${anchor}` : `#/note/${entryId}`;
-}
-
-/* ============================================================
-   ANIMATIONS
-   ============================================================ */
-function animateStats() {
-  $$('.stat .num').forEach((el) => {
-    const to = Number(el.dataset.to) || 0;
-    const dur = 900;
-    const start = performance.now();
-    const step = (now) => {
-      const p = Math.min(1, (now - start) / dur);
-      const eased = 1 - Math.pow(1 - p, 3);
-      el.textContent = Math.round(to * eased).toString();
-      if (p < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  });
-}
-
-let revealObserver;
-function observeReveal() {
-  if (!('IntersectionObserver' in window)) { $$('.reveal').forEach((el) => el.classList.add('in')); return; }
-  revealObserver?.disconnect();
-  revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach((en) => { if (en.isIntersecting) { en.target.classList.add('in'); revealObserver.unobserve(en.target); } });
-  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
-  $$('.reveal:not(.in)').forEach((el, i) => { el.style.transitionDelay = `${Math.min(i * 40, 240)}ms`; revealObserver.observe(el); });
 }
 
 /* ============================================================

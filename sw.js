@@ -4,7 +4,7 @@
    - Google Fonts : cache-first runtime.
    Bumpe CACHE pour invalider après un gros changement. */
 
-const CACHE = 'cyber-lab-v4';
+const CACHE = 'cyber-lab-v5';
 const CORE = [
   './',
   'index.html',

@@ -158,14 +158,28 @@ function renderHome() {
   const recent = [...entries].sort((a, b) => (b.updated || '').localeCompare(a.updated || '')).slice(0, 8);
   const tagFreq = new Map();
   for (const e of entries) for (const t of e.tags) tagFreq.set(t, (tagFreq.get(t) || 0) + 1);
-  const topTags = [...tagFreq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 32);
-  const counts = new Map(categories.map((c) => [c.id, entries.filter((e) => e.category === c.id).length]));
+  const topTags = [...tagFreq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 24);
+
+  const dir = categories.map((c, i) => {
+    const items = entries.filter((e) => e.category === c.id);
+    return `<section class="dir-cat">
+      <div class="dc-head">
+        <span class="dc-num">${String(i + 1).padStart(2, '0')}</span>
+        <h3><a href="#/cat/${c.id}">${escapeHtml(c.label)}</a></h3>
+        <span class="dc-count">${items.length}</span>
+      </div>
+      <p class="dc-blurb">${escapeHtml(c.blurb || '')}</p>
+      <ul class="dc-notes">${items.map((e) => `<li><a href="#/note/${e.id}">${escapeHtml(e.title)}</a></li>`).join('')}</ul>
+    </section>`;
+  }).join('');
 
   $('#view').innerHTML = `
-    <header class="home-head">
-      <div class="kicker">Cybersécurité offensive · TryHackMe · HTB</div>
-      <h1 class="home-title">Manuel de terrain.</h1>
-      <p class="home-desc">Cheatsheets par sujet, méthodes offensives et write-ups de box — rangés, indexés et cherchables. Un carnet de pentest tenu au fil des rooms.</p>
+    <header class="masthead">
+      <div class="mast-main">
+        <div class="kicker">Cybersécurité offensive · TryHackMe · HTB</div>
+        <h1 class="home-title">Manuel de terrain.</h1>
+        <p class="home-desc">Cheatsheets par sujet, méthodes offensives et write-ups de box — rangés, indexés et cherchables. Un carnet de pentest tenu au fil des rooms.</p>
+      </div>
       <dl class="factbar">
         <div><dt>notes</dt><dd>${stats.entries}</dd></div>
         <div><dt>sujets</dt><dd>${stats.categories}</dd></div>
@@ -174,30 +188,22 @@ function renderHome() {
       </dl>
     </header>
 
-    <section class="block">
-      <div class="block-head"><h2>Sommaire</h2><span>${categories.length} sujets</span></div>
-      <ol class="index">
-        ${categories.map((c, i) => `<li><a class="index-row" href="#/cat/${c.id}">
-          <span class="ix-num">${String(i + 1).padStart(2, '0')}</span>
-          <span class="ix-label">${escapeHtml(c.label)}</span>
-          <span class="ix-desc">${escapeHtml(c.blurb || '')}</span>
-          <span class="ix-dots" aria-hidden="true"></span>
-          <span class="ix-count">${counts.get(c.id)}</span>
-        </a></li>`).join('')}
-      </ol>
-    </section>
-
-    <section class="block">
-      <div class="block-head"><h2>Derniers ajouts</h2><span>maj</span></div>
-      <ul class="rows">${recent.map(rowItem).join('')}</ul>
-    </section>
-
-    <section class="block">
-      <div class="block-head"><h2>Tags</h2><span>${topTags.length}</span></div>
-      <div class="tagrow">
-        ${topTags.map(([t, n]) => `<a href="#/tag/${encodeURIComponent(t)}">${escapeHtml(t)}<span>${n}</span></a>`).join('')}
-      </div>
-    </section>
+    <div class="home-body">
+      <main class="home-main">
+        <div class="block-head"><h2>Répertoire</h2><span>${stats.entries} notes · ${categories.length} sujets</span></div>
+        <div class="dir-grid">${dir}</div>
+      </main>
+      <aside class="home-rail">
+        <div>
+          <div class="rail-head">Derniers ajouts</div>
+          <ul class="rail-list">${recent.map((e) => `<li><a href="#/note/${e.id}"><span class="rl-t">${escapeHtml(e.title)}</span><span class="rl-d">${escapeHtml(e.updated || '')}</span></a></li>`).join('')}</ul>
+        </div>
+        <div>
+          <div class="rail-head">Tags</div>
+          <div class="tagrow">${topTags.map(([t, n]) => `<a href="#/tag/${encodeURIComponent(t)}">${escapeHtml(t)}<span>${n}</span></a>`).join('')}</div>
+        </div>
+      </aside>
+    </div>
 
     <footer class="page-foot">
       <span>Cyber Lab — Arthur Jeaugey · mise à jour continue</span>
@@ -206,9 +212,9 @@ function renderHome() {
 }
 
 function rowItem(e) {
-  const meta = [e.categoryLabel, e.platform, e.difficulty].filter(Boolean).join(' · ');
+  const meta = [e.platform, e.difficulty].filter(Boolean).join(' · ');
   return `<li><a class="row" href="#/note/${e.id}">
-    <span class="row-title">${escapeHtml(e.title)}</span>
+    <span class="row-main"><span class="row-title">${escapeHtml(e.title)}</span>${e.summary ? `<span class="row-desc">${escapeHtml(e.summary)}</span>` : ''}</span>
     <span class="row-meta">${escapeHtml(meta)}</span>
     <span class="row-date">${escapeHtml(e.updated || '')}</span>
   </a></li>`;

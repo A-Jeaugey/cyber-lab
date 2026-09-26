@@ -76,7 +76,14 @@ export function initIngest({ index }) {
             <div class="callout">Crée une nouvelle note de savoir, ou une <strong>box réalisée en training</strong> (catégorie <em>Rooms &amp; Boxes</em>) avec son write-up.</div>
             <div class="grid-2">
               <div class="field"><label>Titre</label><input id="f-title" placeholder="Blue"></div>
-              <div class="field"><label>Catégorie</label><select id="f-category">${cats}</select></div>
+              <div class="field"><label>Catégorie</label><select id="f-category">${cats}<option value="__new__">➕ Nouveau sujet…</option></select></div>
+            </div>
+            <div id="f-newcat" hidden>
+              <div class="grid-2">
+                <div class="field"><label>Id du nouveau sujet</label><input id="f-newcat-id" placeholder="forensics"></div>
+                <div class="field"><label>Libellé affiché</label><input id="f-newcat-label" placeholder="Forensics & DFIR"></div>
+              </div>
+              <div class="field"><label>Description du sujet (optionnel)</label><input id="f-newcat-blurb" placeholder="Analyse post-mortem, artefacts, timeline."></div>
             </div>
             <div class="grid-2">
               <div class="field"><label>Plateforme (box)</label>
@@ -171,6 +178,10 @@ export function initIngest({ index }) {
   fillHeadings();
   updateOpUI();
 
+  // Créer : révéler les champs "nouveau sujet"
+  const catSel = $('#f-category');
+  catSel.addEventListener('change', () => { $('#f-newcat').hidden = catSel.value !== '__new__'; });
+
   // Token mémorisé
   const saved = safeGet(TOKEN_KEY);
   if (saved) { $('#f-token').value = saved; $('#f-remember').checked = true; }
@@ -238,9 +249,22 @@ export function initIngest({ index }) {
       const body = $('#f-body').value.trim();
       if (!title) return setStatus(status, 'err', 'Titre manquant.');
       if (!body) return setStatus(status, 'err', 'Contenu manquant.');
+      let category = $('#f-category').value;
+      let categoryLabel;
+      let categoryBlurb;
+      if (category === '__new__') {
+        const nlabel = $('#f-newcat-label').value.trim();
+        const nid = slugify($('#f-newcat-id').value.trim() || nlabel);
+        if (!nid) return setStatus(status, 'err', 'Donne un id ou un libellé pour le nouveau sujet.');
+        category = nid;
+        categoryLabel = nlabel || undefined;
+        categoryBlurb = $('#f-newcat-blurb').value.trim() || undefined;
+      }
       payload = {
         title,
-        category: $('#f-category').value,
+        category,
+        categoryLabel,
+        categoryBlurb,
         platform: $('#f-platform').value,
         difficulty: $('#f-difficulty').value,
         tags: splitTags($('#f-tags').value),

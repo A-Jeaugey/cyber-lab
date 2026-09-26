@@ -153,13 +153,38 @@ GH_TOKEN=xxx node scripts/add-room.mjs --title "Blue" --category rooms --platfor
 node scripts/add-room.mjs --local --target nmap --body "### Astuce\n..."
 ```
 
-## Catégories
+## Catégories (= les « sections » du site)
 
-`linux` · `windows` · `networking` · `recon` · `exploitation` · `web` ·
-`postexploit` · `cryptohash` · `scripting` · `rooms` (boxes de training).
+Sujets existants : `linux` · `windows` · `networking` · `recon` · `exploitation` ·
+`web` · `postexploit` · `cryptohash` · `scripting` · `rooms` (boxes de training).
 
 - `category: rooms` → fichier dans `content/rooms/`
 - autre catégorie → `content/cheatsheets/`
+
+### Créer une NOUVELLE section (nouveau sujet)
+
+Il suffit de créer une note avec une `category` **inédite** : la section apparaît
+automatiquement dans la sidebar et le répertoire. Ajoute `categoryLabel` (et
+éventuellement `categoryBlurb`) pour son affichage — sinon le libellé est dérivé
+de l'id.
+
+```json
+{ "event_type": "add-room",
+  "client_payload": {
+    "title": "Autopsy — bases", "category": "forensics",
+    "categoryLabel": "Forensics & DFIR",
+    "categoryBlurb": "Analyse post-mortem, artefacts, timeline.",
+    "tags": ["forensics"], "body": "## Montage d'image\n- ewfmount ..." } }
+```
+
+```bash
+node scripts/add-room.mjs --local --commit --title "Autopsy — bases" \
+  --category forensics --category-label "Forensics & DFIR" \
+  --category-blurb "Analyse post-mortem, artefacts." --body-file notes.md
+```
+
+> Rappel : ajouter des sections `##` **dans** une note existante = `op: append`
+> (ou `after`). Créer un **sujet** = une note avec une nouvelle `category`.
 
 ## Conventions de contenu
 

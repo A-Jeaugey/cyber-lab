@@ -59,6 +59,8 @@ const payload = {
   section: args.section || undefined,
   title: args.title || undefined,
   category: args.category || undefined,
+  categoryLabel: args['category-label'] || undefined,
+  categoryBlurb: args['category-blurb'] || undefined,
   platform: args.platform || undefined,
   difficulty: args.difficulty || undefined,
   status: args.status || undefined,

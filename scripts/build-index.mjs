@@ -150,6 +150,8 @@ function scanDir(rel) {
         id,
         title,
         category: meta.category || 'divers',
+        catLabel: meta.categoryLabel || '',   // transient : libellé d'un nouveau sujet
+        catBlurb: meta.categoryBlurb || '',    // transient : description d'un nouveau sujet
         icon: meta.icon || '📄',
         difficulty: meta.difficulty || '',
         platform: meta.platform || '',
@@ -170,13 +172,26 @@ function scanDir(rel) {
 /* --- Build --- */
 const entries = [...scanDir('cheatsheets'), ...scanDir('rooms')];
 
-// Ordonne les catégories : celles connues d'abord (ordre défini), puis les inconnues.
+// Ordonne les catégories : celles connues d'abord (ordre défini), puis les
+// nouvelles catégories créées à la volée par le contenu (nouveaux "sujets").
+function titleize(id) {
+  return String(id).split(/[-_]/).filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
 const known = new Set(CATEGORIES.map((c) => c.id));
 const extraCats = [...new Set(entries.map((e) => e.category))].filter((c) => !known.has(c));
 const categories = [
   ...CATEGORIES,
-  ...extraCats.map((id) => ({ id, label: id, icon: '📁', blurb: '' })),
+  ...extraCats.map((id) => {
+    const inCat = entries.filter((e) => e.category === id);
+    const label = inCat.map((e) => e.catLabel).find(Boolean) || titleize(id);
+    const blurb = inCat.map((e) => e.catBlurb).find(Boolean) || '';
+    return { id, label, icon: '📁', blurb };
+  }),
 ].filter((c) => entries.some((e) => e.category === c.id));
+
+// Retire les champs transitoires avant sérialisation.
+for (const e of entries) { delete e.catLabel; delete e.catBlurb; }
 
 // Tri des entrées : par ordre de catégorie puis par titre.
 const catOrder = new Map(categories.map((c, i) => [c.id, i]));

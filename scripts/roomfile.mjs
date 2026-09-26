@@ -169,6 +169,9 @@ export function buildRoomMarkdown(p) {
     updated: new Date().toISOString().slice(0, 10),
     source: scalar(p.source) || 'agent',
   };
+  // Nouveau sujet (catégorie inédite) : porte son libellé + description.
+  if (p.categoryLabel) meta.categoryLabel = scalar(p.categoryLabel);
+  if (p.categoryBlurb) meta.categoryBlurb = scalar(p.categoryBlurb);
   return serializeNote(meta, body);
 }
 

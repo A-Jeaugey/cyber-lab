@@ -50,3 +50,9 @@ source: room
 
 - Le panel bloquait `cat fichier.txt` mais Apache servait `http://IP/fichier.txt` directement.
 - Toujours penser à : accès via web vs panel vs SSH vs shell — chaque chemin a ses propres défenses.
+
+## Voir aussi
+
+- [[recon-bruteforce]] — gobuster pour les pages cachées
+- [[web]] — view-source, robots.txt, bypass
+- [[privilege-escalation]] — le réflexe `sudo -l`

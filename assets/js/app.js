@@ -282,7 +282,7 @@ function renderEntry(id, anchor) {
           <div class="entry-meta">${meta.map((m) => `<span>${escapeHtml(m)}</span>`).join('')}</div>
           ${e.tags.length ? `<div class="entry-tags">${e.tags.map((t) => `<a href="#/tag/${encodeURIComponent(t)}">${escapeHtml(t)}</a>`).join('')}</div>` : ''}
         </header>
-        <div class="md">${renderMarkdown(e.body)}</div>
+        <div class="md">${renderMarkdown(e.body, { resolveLink: (id) => { const n = state.entriesById.get(id); return { exists: !!n, title: n ? n.title : '' }; } })}</div>
         <nav class="pager">
           ${prev ? `<a class="prev" href="#/note/${prev.id}"><span class="dir">← précédent</span><span class="ttl">${escapeHtml(prev.title)}</span></a>` : '<span></span>'}
           ${next ? `<a class="next" href="#/note/${next.id}"><span class="dir">suivant →</span><span class="ttl">${escapeHtml(next.title)}</span></a>` : '<span></span>'}

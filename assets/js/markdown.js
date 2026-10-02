@@ -141,11 +141,41 @@ function highlight(code, lang) {
 /* Rendu inline                                                        */
 /* ------------------------------------------------------------------ */
 
+/* Résolveur de wikilink, fourni par renderMarkdown(md, { resolveLink }).
+   resolveLink(id) -> { exists: bool, title: string }. */
+let activeResolve = null;
+
+/* Wikilink : [[id]] · [[id|texte affiché]] · [[id#section]] -> lien interne. */
+function wikilink(inner) {
+  let raw = inner.trim();
+  let label = null;
+  const pipe = raw.indexOf('|');
+  if (pipe !== -1) { label = raw.slice(pipe + 1).trim(); raw = raw.slice(0, pipe).trim(); }
+  let idPart = raw;
+  let anchorPart = '';
+  const hash = raw.indexOf('#');
+  if (hash !== -1) { anchorPart = raw.slice(hash + 1).trim(); idPart = raw.slice(0, hash).trim(); }
+  const id = slugify(idPart);
+  if (!id) return escapeHtml(`[[${inner}]]`);
+  const info = activeResolve ? activeResolve(id) : null;
+  const title = (info && info.title) || idPart;
+  const text = label || title;
+  const anchor = anchorPart ? slugify(anchorPart) : '';
+  const href = `#/note/${encodeURIComponent(id)}${anchor ? '/' + encodeURIComponent(anchor) : ''}`;
+  const missing = info ? !info.exists : false;
+  return `<a class="wikilink${missing ? ' wl-missing' : ''}" href="${escapeAttr(href)}"${missing ? ' title="note introuvable"' : ''}>${escapeHtml(text)}</a>`;
+}
+
 function inline(text) {
   const codes = [];
   let t = text.replace(/`([^`]+)`/g, (_, c) => {
     codes.push(c);
     return `\u0000${codes.length - 1}\u0000`;
+  });
+  const wl = [];
+  t = t.replace(/\[\[([^\]\n]+?)\]\]/g, (_, inner) => {
+    wl.push(wikilink(inner));
+    return `\u0002${wl.length - 1}\u0002`;
   });
   t = escapeHtml(t);
   t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,
@@ -154,6 +184,7 @@ function inline(text) {
   t = t.replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, '$1<em>$2</em>');
   t = t.replace(/~~([^~]+)~~/g, '<del>$1</del>');
   t = t.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code class="inline">${escapeHtml(codes[i])}</code>`);
+  t = t.replace(/\u0002(\d+)\u0002/g, (_, i) => wl[i]);
   return t;
 }
 
@@ -161,7 +192,10 @@ function inline(text) {
 /* Rendu bloc                                                          */
 /* ------------------------------------------------------------------ */
 
-export function renderMarkdown(md) {
+export function renderMarkdown(md, opts = {}) {
+  const prevResolve = activeResolve;
+  if (opts && opts.resolveLink !== undefined) activeResolve = opts.resolveLink;
+  try {
   const lines = String(md).replace(/\r\n/g, '\n').split('\n');
   const seen = new Map();
   const anchorFor = (text) => {
@@ -279,4 +313,5 @@ export function renderMarkdown(md) {
   }
 
   return html;
+  } finally { activeResolve = prevResolve; }
 }

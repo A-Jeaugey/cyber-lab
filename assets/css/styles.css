@@ -266,6 +266,9 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
 .md p { margin: 0 0 14px; }
 .md a:not(.anchor) { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-border); }
 .md a:not(.anchor):hover { border-bottom-color: var(--accent); }
+.md a.wikilink { border-bottom-style: dotted; }
+.md a.wl-missing { color: var(--muted); border-bottom: 1px dashed var(--border-2); cursor: help; }
+.md a.wl-missing:hover { color: var(--text-2); }
 .md strong { font-weight: 600; color: var(--text); }
 .md em { font-style: italic; }
 .md ul, .md ol { margin: 0 0 16px; padding-left: 22px; }

@@ -192,4 +192,17 @@ node scripts/add-room.mjs --local --commit --title "Autopsy — bases" \
 - Blocs de code avec langage pour la coloration : `bash`, `powershell`, `sql`, `python`, `javascript`.
 - Pour une box : structure `## Recon` / `## Foothold` / `## Privesc` conseillée.
 
+### Liens entre notes (wikilinks)
+
+Pour relier les notes, utilise `[[id-de-la-note]]` dans le corps — ça devient un
+lien cliquable, avec le vrai titre de la note. L'`id` = le nom du fichier sans
+`.md` (voir `content/index.json`).
+
+- `[[nmap]]` → lien vers la note, texte = son titre.
+- `[[nmap|le scanner]]` → texte d'affichage personnalisé.
+- `[[nmap#Types de scan]]` → lien direct vers une section de la note.
+
+Un `[[id]]` qui ne correspond à aucune note s'affiche en « lien cassé » (pointillé),
+pratique pour repérer une note à créer.
+
 Schéma JSON complet : [`content/schema.json`](../content/schema.json).

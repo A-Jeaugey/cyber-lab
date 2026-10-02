@@ -81,6 +81,7 @@ function toPlainText(md) {
   return md
     .replace(/```[\s\S]*?```/g, (block) => ' ' + block.replace(/```[a-z]*\n?/gi, '').replace(/```/g, '') + ' ')
     .replace(/`([^`]+)`/g, '$1')
+    .replace(/\[\[([^\]\n]+?)\]\]/g, (_, s) => { const p = s.split('|'); return (p[1] || p[0]).split('#')[0]; })
     .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
     .replace(/^\s{0,3}#{1,6}\s+/gm, '')

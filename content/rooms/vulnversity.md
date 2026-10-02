@@ -62,3 +62,10 @@ source: room
 - Workflow privesc = 2 shells côte à côte (un user, un root après escalade).
 - Toujours utiliser des **ports différents** pour les listeners (4444 / 4445).
 - `whoami` + `hostname` pour vérifier dans quel shell on est (piège classique : confondre AttackBox local et shell distant).
+
+## Voir aussi
+
+- [[nmap]] — le scan initial de la box
+- [[recon-bruteforce]] — gobuster sur le port web
+- [[shells]] — le reverse shell PHP uploadé
+- [[privilege-escalation]] — SUID / systemctl pour le root

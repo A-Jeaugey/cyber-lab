@@ -1,11 +1,11 @@
 ---
-title: SQL — bases & injection
+title: "SQL — bases & injection"
 category: web
-icon: 💉
-difficulty: Essentiel
-tags: [sql, sqli, injection, union, mysql, blind, prepared-statements]
-summary: CRUD et recon MySQL, hello-world SQLi, UNION-based, types de SQLi (in-band/error/blind/OOB) et protection par prepared statements.
-updated: 2026-09-25
+icon: "💉"
+difficulty: "Essentiel"
+tags: [sql, sqli, injection, union, mysql, blind, prepared-statements, oob, headers, referer]
+summary: "CRUD et recon MySQL, hello-world SQLi, UNION-based, types de SQLi (in-band/error/blind/OOB) et protection par prepared statements."
+updated: 2026-10-17
 source: cheatsheet
 ---
 
@@ -62,3 +62,12 @@ DESCRIBE table_name;
 - **Out-of-band** : exfil via DNS/HTTP callback
 
 > **Protection** : prepared statements (parameterized queries). Le `?` placeholder empêche l'input d'être interprété comme du SQL. Les frameworks modernes le font par défaut.
+
+## Points d'injection & OOB
+
+- **Le point d'injection n'est pas que l'URL ou un formulaire** : un en-tête HTTP peut être injectable. Tester aussi `Referer`, `User-Agent`, `X-Forwarded-For`, `Cookie`. (THM SQLi Introduction lab 4 : time-based blind via le header `Referer`.)
+- **Out-of-Band (OOB)** — quand l'injection est aveugle ET sans retour visible : exfiltrer via un callback réseau.
+  - MySQL : `LOAD_FILE()` vers un chemin UNC → requête DNS/SMB sortante.
+  - MSSQL : `xp_dirtree` / `xp_cmdshell`.
+  - Récupérer le callback sur **Burp Collaborator** ou **Interactsh**.
+  - Réflexe : injection confirmée mais zéro différence de réponse et pas de délai exploitable → tenter l'OOB.
